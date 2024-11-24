@@ -1,13 +1,14 @@
 package models
 
-import "mime/multipart"
+import "app-go/internal/models"
 
 // Post is an entity that contain information of a post
 type Post struct{}
 
 type CreatePostArg struct {
-	Text string         `json:"text"`
-	File multipart.File `json:"file"`
+	Creator string      `json:"creator"`
+	Text    string      `json:"text"`
+	File    models.File `json:"file"`
 }
 
 type GetPostsArg struct{}

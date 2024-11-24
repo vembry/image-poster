@@ -1,8 +1,9 @@
 package handlers
 
 import (
+	"app-go/internal/models"
 	postmodule "app-go/internal/modules/post"
-	"app-go/internal/modules/post/models"
+	postmodels "app-go/internal/modules/post/models"
 	"app-go/internal/servers/http/middlewares"
 	"log"
 	"net/http"
@@ -62,7 +63,7 @@ func (p *post) Post(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// attempt to read file from request
-	file, _, err := r.FormFile("file")
+	file, header, err := r.FormFile("file")
 	if err != nil {
 		log.Printf("error on getting file. err=%v", err)
 		respondJson(w, http.StatusBadRequest, map[string]string{
@@ -78,9 +79,13 @@ func (p *post) Post(w http.ResponseWriter, r *http.Request) {
 	text := r.FormValue("text")
 
 	// call service
-	err = p.postProvider.CreatePost(r.Context(), models.CreatePostArg{
+	err = p.postProvider.CreatePost(r.Context(), postmodels.CreatePostArg{
 		Text: text,
-		File: file,
+		File: models.File{
+			Name:        header.Filename,
+			ContentType: header.Header.Get("Content-Type"),
+			Content:     file,
+		},
 	})
 	if err != nil {
 		log.Printf("error on submitting post. err=%v", err)
