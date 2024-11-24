@@ -2,13 +2,14 @@ package models
 
 import (
 	"app-go/internal/models"
+	"database/sql"
 	"encoding/json"
 	"time"
 
 	"github.com/segmentio/ksuid"
 )
 
-// Post is an entity that contain information of a post
+// Post is an entity that contain fields of a 'posts' table
 type Post struct {
 	Id        ksuid.KSUID     `gorm:"column:id"`
 	Text      string          `gorm:"column:text"`
@@ -16,7 +17,7 @@ type Post struct {
 	CreatedBy string          `gorm:"column:created_by"`
 	CreatedAt time.Time       `gorm:"column:created_at"`
 	UpdatedAt time.Time       `gorm:"column:updated_at"`
-	DeletedAt time.Time       `gorm:"column:deleted_at"`
+	DeletedAt sql.NullTime    `gorm:"column:deleted_at"`
 }
 
 // PostImage contain image stored
@@ -30,12 +31,33 @@ type PostImage struct {
 	// instagram. For now, keeping things simple
 }
 
-type CreatePostArg struct {
-	Creator string      `json:"creator"`
-	Text    string      `json:"text"`
-	File    models.File `json:"file"`
+// PostStructure is an entity that contain fields of a 'post_structures' table
+type PostStructure struct {
+	PostId       ksuid.KSUID    `gorm:"column:post_id"`
+	ParentPostId sql.NullString `gorm:"column:parent_post_id"`
 }
 
-type GetPostsArg struct{}
+type CreatePostArg struct {
+	Creator string
+	Text    string
+	File    models.File
+}
+
+type GetPostsArg struct {
+	Limit int
+	Page  int
+}
+
+type GetPostsResponse struct {
+	List []PostResponse `json:"list"`
+}
+
+type PostResponse struct {
+	Id      ksuid.KSUID `json:"id"`
+	Text    string      `json:"text"`
+	Creator string      `json:"creator"`
+	Image   PostImage   `json:"image"`
+}
+
 type PostCommentArg struct{}
 type DeleteCommentArg struct{}
