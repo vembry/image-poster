@@ -42,7 +42,7 @@ func New(awsCfg aws.Config) *s3 {
 func (s *s3) Upload(ctx context.Context, args models.UploadArgs) error {
 	_, err := s.client.PutObject(ctx, &awss3.PutObjectInput{
 		Bucket: &s.s3bucket,
-		Key:    aws.String(fmt.Sprintf("file-%s", args.File.Name)),
+		Key:    &args.File.Name,
 		ACL:    types.ObjectCannedACLPublicRead,
 
 		Body:        args.File.Content,
@@ -50,6 +50,21 @@ func (s *s3) Upload(ctx context.Context, args models.UploadArgs) error {
 	})
 	if err != nil {
 		err = fmt.Errorf("error on uploading file to s3. err=%w", err)
+		log.Print(err)
+		return err
+	}
+
+	return nil
+}
+
+// RollbackUpload handle rollback process upload
+func (s *s3) RollbackUpload(ctx context.Context, args models.UploadArgs) error {
+	_, err := s.client.DeleteObject(ctx, &awss3.DeleteObjectInput{
+		Bucket: &s.s3bucket,
+		Key:    &args.File.Name,
+	})
+	if err != nil {
+		err = fmt.Errorf("error on rolling back upload file to s3. err=%w", err)
 		log.Print(err)
 		return err
 	}

@@ -8,4 +8,5 @@ import (
 // IUpload specify expectation of an upload module
 type IUpload interface {
 	Upload(ctx context.Context, args models.UploadArgs) error
+	RollbackUpload(ctx context.Context, args models.UploadArgs) error
 }
