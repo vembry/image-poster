@@ -40,21 +40,19 @@ func New(awsCfg aws.Config) *s3 {
 
 // Upload handle upload process to aws' s3
 func (s *s3) Upload(ctx context.Context, args models.UploadArgs) error {
-	res, err := s.client.PutObject(ctx, &awss3.PutObjectInput{
+	_, err := s.client.PutObject(ctx, &awss3.PutObjectInput{
 		Bucket: &s.s3bucket,
 		Key:    aws.String(fmt.Sprintf("file-%s", args.File.Name)),
 		ACL:    types.ObjectCannedACLPublicRead,
 
 		Body:        args.File.Content,
-		ContentType: &args.File.ContentType,
+		ContentType: aws.String(string(args.File.ContentType)),
 	})
 	if err != nil {
 		err = fmt.Errorf("error on uploading file to s3. err=%w", err)
 		log.Print(err)
 		return err
 	}
-
-	log.Print(res)
 
 	return nil
 }

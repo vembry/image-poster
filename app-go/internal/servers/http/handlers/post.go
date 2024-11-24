@@ -19,6 +19,7 @@ func NewPost(postProvider postmodule.IPost) *post {
 	}
 }
 
+// GetRoutes return mapped routes of post handler
 func (p *post) GetRoutes() *http.ServeMux {
 	postmux := http.NewServeMux()
 
@@ -43,6 +44,14 @@ func (p *post) GetRoutes() *http.ServeMux {
 // ListPost handle http request to get a paginated list of posts
 func (p *post) ListPost(w http.ResponseWriter, r *http.Request) {
 	respondJson(w, http.StatusOK, r.URL.Query())
+}
+
+// allowedImageType contain file types allowed to be uploaded for post
+var allowedImageType = map[string]models.FileContentType{
+	"image/jpeg": models.FileContentTypeJPEG,
+	"image/jpg":  models.FileContentTypeJPG,
+	"image/png":  models.FileContentTypePNG,
+	"image/bmp":  models.FileContentTypeBMP,
 }
 
 // Post handle http request to create post entry
@@ -75,15 +84,24 @@ func (p *post) Post(w http.ResponseWriter, r *http.Request) {
 		defer file.Close()
 	}
 
+	// validate file type
+	contentType, ok := allowedImageType[header.Header.Get("Content-Type")]
+	if !ok {
+		respondErrorJson(w, http.StatusBadRequest, "invalid file types")
+		return
+	}
+
 	// read non-file payload from request
-	text := r.FormValue("text")
+	text := r.FormValue("text")          // get caption from body
+	creator := r.Header.Get("x-user-id") // get creator from header's x-user-id
 
 	// call service
 	err = p.postProvider.CreatePost(r.Context(), postmodels.CreatePostArg{
-		Text: text,
+		Creator: creator,
+		Text:    text,
 		File: models.File{
 			Name:        header.Filename,
-			ContentType: header.Header.Get("Content-Type"),
+			ContentType: contentType,
 			Content:     file,
 		},
 	})
@@ -95,7 +113,8 @@ func (p *post) Post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondJson(w, http.StatusOK, nil)
+	// end
+	respondJson(w, http.StatusOK, struct{}{})
 }
 
 // PostComment handle http request to post a comment on a post
