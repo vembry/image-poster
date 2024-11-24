@@ -21,8 +21,13 @@ type Post struct {
 
 // PostImage contain image stored
 type PostImage struct {
-	Original    string `json:"original"`
-	Transformed string `json:"transformed"`
+	Original    string `json:"original"`    // contain image link which uploaded by user
+	Transformed string `json:"transformed"` // contain transformed image link from 'Original'
+
+	// NOTE:
+	// its probably better to define 'Original' and 'Transform' as array
+	// for future usage, if we want to accept multiple image entry like
+	// instagram. For now, keeping things simple
 }
 
 type CreatePostArg struct {
