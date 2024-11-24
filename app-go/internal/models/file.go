@@ -2,6 +2,7 @@ package models
 
 import "mime/multipart"
 
+// FileContentType is enum types containing file type
 type FileContentType string
 
 const (
