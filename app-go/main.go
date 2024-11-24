@@ -2,6 +2,7 @@ package main
 
 import (
 	"app-go/server/http"
+	"app-go/server/http/handlers"
 	"log"
 	"os"
 	"os/signal"
@@ -17,8 +18,9 @@ func main() {
 
 	// NOTE: add server initialization on the following
 	// ...
+	posthandler := handlers.NewPost()
 
-	httpserver := http.New(":4000")
+	httpserver := http.New(":4000", posthandler)
 
 	// server starts
 	httpserver.Start()
