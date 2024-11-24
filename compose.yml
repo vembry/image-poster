@@ -1,0 +1,11 @@
+services:
+  localstack:
+    container_name: aws-local
+    image: docker.io/localstack/localstack:4.0.2
+    pull_policy: missing
+    ports:
+      - 4566:4566
+    environment:
+      - SERVICES=sqs,s3
+    healthcheck:
+      interval: 15s
