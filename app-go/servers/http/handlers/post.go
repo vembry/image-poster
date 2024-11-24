@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"app-go/server/http/middlewares"
+	"app-go/servers/http/middlewares"
 	"net/http"
 )
 

@@ -1,8 +1,8 @@
 package main
 
 import (
-	"app-go/server/http"
-	"app-go/server/http/handlers"
+	"app-go/servers/http"
+	"app-go/servers/http/handlers"
 	"log"
 	"os"
 	"os/signal"
