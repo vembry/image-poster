@@ -12,20 +12,20 @@ import (
 	"fmt"
 	"log"
 	"time"
-
-	"github.com/segmentio/ksuid"
 )
 
 type post struct {
-	postRepo repositories.IPost
-	uploader filestorage.IUpload
+	postRepo          repositories.IPost
+	postStructureRepo repositories.IPostStructure
+	uploader          filestorage.IUpload
 }
 
 // New initialize post domain's service
-func New(postRepo repositories.IPost, uploader filestorage.IUpload) *post {
+func New(postRepo repositories.IPost, postStructureRepo repositories.IPostStructure, uploader filestorage.IUpload) *post {
 	return &post{
-		postRepo: postRepo,
-		uploader: uploader,
+		postRepo:          postRepo,
+		postStructureRepo: postStructureRepo,
+		uploader:          uploader,
 	}
 }
 
@@ -72,19 +72,37 @@ func (p *post) CreatePost(ctx context.Context, args models.CreatePostArg) error 
 	}
 	raw, _ := json.Marshal(image)
 
-	// save post entry
-	err = p.postRepo.Create(ctx, models.Post{
-		Id:        ksuid.New(),
+	// construct new post entry
+	post := &models.Post{
 		Text:      args.Text,
 		Image:     raw,
 		CreatedBy: args.Creator,
-	})
+	}
+
+	// save post entry
+	err = p.postRepo.Create(ctx, post)
 	if err != nil {
 		log.Printf("error on saving post to database. err=%v", err)
 		return errors.New("error on saving post to database")
 	}
 
+	// append rollback handler
+	rollbackFns = append(rollbackFns, func() {
+		_ = p.postRepo.RollbackCreate(ctx, post)
+	})
+
+	// create post-structure entry
+	err = p.postStructureRepo.Create(ctx, models.PostStructure{
+		PostId: post.Id,
+	})
+	if err != nil {
+		log.Printf("error on saving post structures to database. err=%v", err)
+		return errors.New("error on saving post structures to database")
+	}
+
 	// enqueue post's for image transform
+
+	// TODO: implements enquque for image transform
 	// ...
 
 	// return
@@ -92,8 +110,55 @@ func (p *post) CreatePost(ctx context.Context, args models.CreatePostArg) error 
 }
 
 // GetPosts return a list of posts based on provided arguments
-func (p *post) GetPosts(ctx context.Context, args models.GetPostsArg) ([]models.Post, error) {
-	return nil, nil
+func (p *post) GetPosts(ctx context.Context, args models.GetPostsArg) (*models.GetPostsResponse, error) {
+	// attempt to get available posts based on parameter
+	postStructures, err := p.postStructureRepo.GetMultipleWithCursor(ctx, args.Limit, args.Limit*args.Page)
+	if err != nil {
+		log.Printf("error on getting post structures from database. err=%v", err)
+		return nil, errors.New("error on getting post structures from database")
+	}
+
+	if len(postStructures) == 0 {
+		return &models.GetPostsResponse{
+			List: make([]models.PostResponse, 0),
+		}, nil
+	}
+
+	// prep arg to retrieve posts by ids
+	postIds := []string{}
+	for _, postStpostStructure := range postStructures {
+		postIds = append(postIds, postStpostStructure.PostId.String())
+	}
+
+	// retrieve full posts
+	posts, err := p.postRepo.GetByMultipleIds(ctx, postIds)
+	if err != nil {
+		log.Printf("error on getting posts from database. err=%v", err)
+		return nil, errors.New("error on getting post structures from database")
+	}
+
+	// convert posts into post-responses
+	postResponses := []models.PostResponse{}
+	for _, post := range posts {
+		// read image links
+		var image models.PostImage
+		err = json.Unmarshal(post.Image, &image)
+		if err != nil {
+			log.Printf("error on parsing post's image json into a structured format")
+			continue
+		}
+
+		postResponses = append(postResponses, models.PostResponse{
+			Id:      post.Id,
+			Text:    post.Text,
+			Creator: post.CreatedBy,
+			Image:   image,
+		})
+	}
+
+	return &models.GetPostsResponse{
+		List: postResponses,
+	}, nil
 }
 
 // PostComment creates a comment entry of a post

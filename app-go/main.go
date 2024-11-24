@@ -1,6 +1,7 @@
 package main
 
 import (
+	"app-go/internal/app"
 	"app-go/internal/clients/postgres"
 	filestorageS3pkg "app-go/internal/modules/file_storage/s3"
 	postpkgrepo "app-go/internal/modules/post/repositories/postgres"
@@ -8,6 +9,7 @@ import (
 	"app-go/internal/servers/http"
 	"app-go/internal/servers/http/handlers"
 	"context"
+	"embed"
 	"log"
 	"os"
 	"os/signal"
@@ -16,11 +18,18 @@ import (
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 )
 
+var (
+
+	//go:embed configs
+	embedFS embed.FS
+)
+
 func main() {
 	log.Println("initiating pre-requisites...")
 
 	// NOTE: add base initialization here
 	// ======================================
+	appConfig := app.NewConfig(embedFS)
 
 	// initialize aws config
 	awscfg, err := awsconfig.LoadDefaultConfig(context.TODO())
@@ -29,15 +38,15 @@ func main() {
 	}
 
 	// initialize postgres client
-	connectionString := `host=0.0.0.0 user=local password=local dbname=image_poster port=5432 sslmode=disable`
-	postgresClient := postgres.New(connectionString)
+	postgresClient := postgres.New(appConfig.Postgres.ConnectionString)
 
 	// initialize repositories
-	postRepo := postpkgrepo.New(postgresClient)
+	postRepo := postpkgrepo.NewPost(postgresClient)
+	postStructureRepo := postpkgrepo.NewPostStructure(postgresClient)
 
 	// initialize modules
 	filestorageS3module := filestorageS3pkg.New(awscfg)
-	postmodule := postpkg.New(postRepo, filestorageS3module)
+	postmodule := postpkg.New(postRepo, postStructureRepo, filestorageS3module)
 
 	// NOTE: add server initialization on the following
 	// ================================================

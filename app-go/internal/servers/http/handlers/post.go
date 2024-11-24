@@ -7,6 +7,7 @@ import (
 	"app-go/internal/servers/http/middlewares"
 	"log"
 	"net/http"
+	"strconv"
 )
 
 type post struct {
@@ -43,7 +44,44 @@ func (p *post) GetRoutes() *http.ServeMux {
 
 // ListPost handle http request to get a paginated list of posts
 func (p *post) ListPost(w http.ResponseWriter, r *http.Request) {
-	respondJson(w, http.StatusOK, r.URL.Query())
+	// read limit
+	limitStr := r.URL.Query().Get("limit")
+	if limitStr == "" {
+		respondErrorJson(w, http.StatusBadRequest, "'limit' is required as query param")
+		return
+	}
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil {
+		respondErrorJson(w, http.StatusBadRequest, "invalid 'limit' value")
+		return
+	}
+
+	// read offset
+	pageStr := r.URL.Query().Get("page")
+	if pageStr == "" {
+		respondErrorJson(w, http.StatusBadRequest, "'page' is required as query param")
+		return
+	}
+
+	page, err := strconv.Atoi(pageStr)
+	if err != nil {
+		respondErrorJson(w, http.StatusBadRequest, "invalid 'page' value")
+		return
+	}
+
+	// call service
+	out, err := p.postProvider.GetPosts(r.Context(), postmodels.GetPostsArg{
+		Limit: limit,
+		Page:  page,
+	})
+	if err != nil {
+		log.Printf("error on getting list of posts. err=%v", err)
+		respondErrorJson(w, http.StatusInternalServerError, "error on getting list of posts")
+		return
+	}
+
+	respondJson(w, http.StatusOK, out)
 }
 
 // allowedImageType contain file types allowed to be uploaded for post
@@ -107,7 +145,7 @@ func (p *post) Post(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		log.Printf("error on submitting post. err=%v", err)
-		respondJson(w, http.StatusBadRequest, map[string]string{
+		respondJson(w, http.StatusInternalServerError, map[string]string{
 			"error": "error processing post submission",
 		})
 		return
