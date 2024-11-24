@@ -27,5 +27,12 @@
 	"runArgs": [
 		"--name=image-poster-workspace",
 		"--network=host"
-	]
+	],
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"eamodio.gitlens"
+			]
+		}
+	}
 }

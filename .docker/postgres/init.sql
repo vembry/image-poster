@@ -7,8 +7,8 @@ CREATE TABLE public.posts (
 	"text" text NULL,
 	image jsonb NULL,
 	created_by varchar NULL,
-	created_at timestamp NULL,
-	updated_at timestamp NULL,
+	created_at timestamp DEFAULT current_timestamp,
+	updated_at timestamp DEFAULT current_timestamp,
 	deleted_at timestamp NULL,
 	CONSTRAINT posts_pk PRIMARY KEY (id)
 );
