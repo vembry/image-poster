@@ -12,6 +12,7 @@ type httpserver struct {
 	server *nethttp.Server
 }
 
+// IRouter specify expecation of a router to be registered handler to http server
 type IRouter interface {
 	GetRoutes() *http.ServeMux
 }
@@ -43,6 +44,7 @@ func (h *httpserver) Start() {
 	}()
 }
 
+// Stop stops http server in a graceful manner
 func (h *httpserver) Stop() {
 	// context for stop timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
