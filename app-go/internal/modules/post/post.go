@@ -1,7 +1,7 @@
 package post
 
 import (
-	"app-go/modules/post/models"
+	"app-go/internal/modules/post/models"
 	"context"
 )
 
