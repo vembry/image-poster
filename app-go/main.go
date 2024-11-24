@@ -1,41 +1,59 @@
 package main
 
 import (
+	filestorageS3pkg "app-go/internal/modules/file_storage/s3"
+	postpkgrepo "app-go/internal/modules/post/repositories/postgres"
 	postpkg "app-go/internal/modules/post/services"
 	"app-go/internal/servers/http"
 	"app-go/internal/servers/http/handlers"
+	"context"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
+
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 )
 
 func main() {
-	// initializing pre-requisites
 	log.Println("starting server...")
 
-	// NOTE: add modules initialization here
-	// ...
+	// NOTE: add base initialization here
+	// ======================================
 
-	// initialize modukes
-	postmodule := postpkg.New(nil, nil)
+	// initialize aws config
+	awscfg, err := awsconfig.LoadDefaultConfig(context.TODO())
+	if err != nil {
+		log.Fatalf("error on loading aws config. err=%v", err)
+	}
+
+	// initialize repositories
+	postRepo := postpkgrepo.New()
+
+	// initialize modules
+	filestorageS3module := filestorageS3pkg.New(awscfg)
+	postmodule := postpkg.New(postRepo, filestorageS3module)
 
 	// NOTE: add server initialization on the following
-	// ...
+	// ================================================
+
+	// initialize handler
 	posthandler := handlers.NewPost(postmodule)
 
-	httpserver := http.New(":4000", posthandler)
+	httpserver := http.New(":4000", posthandler) // initialize http server
 
 	// server starts
 	httpserver.Start()
 
+	// "hang" the server and keep it
+	// running until app got exit signal
 	waitForExitSignal()
 
 	// shutdown starts
 	log.Println("shutting down server...")
 
 	// NOTE: add shutdown handler on the following
-	// ...
+	// ===========================================
 
 	httpserver.Stop() // stopping http server
 
