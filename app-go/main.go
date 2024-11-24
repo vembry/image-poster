@@ -1,6 +1,7 @@
 package main
 
 import (
+	"app-go/internal/clients/postgres"
 	filestorageS3pkg "app-go/internal/modules/file_storage/s3"
 	postpkgrepo "app-go/internal/modules/post/repositories/postgres"
 	postpkg "app-go/internal/modules/post/services"
@@ -27,8 +28,12 @@ func main() {
 		log.Fatalf("error on loading aws config. err=%v", err)
 	}
 
+	// initialize postgres client
+	connectionString := `0.0.0.0 user=local password=local dbname=image_poster port=5432 sslmode=disable`
+	postgresClient := postgres.New(connectionString)
+
 	// initialize repositories
-	postRepo := postpkgrepo.New()
+	postRepo := postpkgrepo.New(postgresClient.GetDb())
 
 	// initialize modules
 	filestorageS3module := filestorageS3pkg.New(awscfg)
@@ -36,14 +41,13 @@ func main() {
 
 	// NOTE: add server initialization on the following
 	// ================================================
-
-	// initialize handler
-	posthandler := handlers.NewPost(postmodule)
-
+	posthandler := handlers.NewPost(postmodule)  // initialize handler
 	httpserver := http.New(":4000", posthandler) // initialize http server
 
-	// server starts
-	httpserver.Start()
+	// NOTE: add server starter on the following
+	// =========================================
+	postgresClient.Start() // start postgres connection
+	httpserver.Start()     // start http server
 
 	// "hang" the server and keep it
 	// running until app got exit signal
@@ -55,7 +59,8 @@ func main() {
 	// NOTE: add shutdown handler on the following
 	// ===========================================
 
-	httpserver.Stop() // stopping http server
+	httpserver.Stop()     // stopping http server
+	postgresClient.Stop() // closing postgress connection
 
 	log.Println("server stopped")
 }
