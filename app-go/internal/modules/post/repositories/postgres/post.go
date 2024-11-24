@@ -1,20 +1,30 @@
 package postgres
 
 import (
+	"app-go/internal/clients"
 	"app-go/internal/modules/post/models"
 	"context"
-
-	"gorm.io/gorm"
+	"fmt"
 )
 
 type post struct {
-	db *gorm.DB
+	dbProvider clients.IDb
 }
 
-func New(db *gorm.DB) *post {
-	return &post{db: db}
+func New(dbProvider clients.IDb) *post {
+	return &post{dbProvider: dbProvider}
 }
 
-func (p *post) CreatePost(ctx context.Context, entry models.Post) error {
+// Create create post entry
+func (p *post) Create(ctx context.Context, entry models.Post) error {
+	err := p.dbProvider.GetDb().
+		WithContext(ctx).
+		Table("posts").
+		Create(&entry).
+		Error
+	if err != nil {
+		return fmt.Errorf("error on creating post entry to database. err=%v", err)
+	}
+
 	return nil
 }
