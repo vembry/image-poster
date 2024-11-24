@@ -1,8 +1,9 @@
 package main
 
 import (
-	"app-go/servers/http"
-	"app-go/servers/http/handlers"
+	postpkg "app-go/internal/modules/post/services"
+	"app-go/internal/servers/http"
+	"app-go/internal/servers/http/handlers"
 	"log"
 	"os"
 	"os/signal"
@@ -16,9 +17,12 @@ func main() {
 	// NOTE: add modules initialization here
 	// ...
 
+	// initialize modukes
+	postmodule := postpkg.New(nil, nil)
+
 	// NOTE: add server initialization on the following
 	// ...
-	posthandler := handlers.NewPost()
+	posthandler := handlers.NewPost(postmodule)
 
 	httpserver := http.New(":4000", posthandler)
 
