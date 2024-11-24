@@ -11,10 +11,7 @@
             "mode": "auto",
             "program": "${workspaceFolder}/app-go",
             "env": {
-                "AWS_ENDPOINT_URL_S3": "http://0.0.0.0:4566",
-                "AWS_ACCESS_KEY_ID": "fake",
-                "AWS_SECRET_ACCESS_KEY": "fake",
-                "AWS_REGION": "ap-southeast-1"
+                "APP_ENVIRONMENT": "development"
             }
         }
     ]
