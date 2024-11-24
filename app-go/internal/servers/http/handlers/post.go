@@ -103,9 +103,7 @@ func (p *post) Post(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseMultipartForm(100 << 20)
 	if err != nil {
 		log.Printf("error on parsing request into multipart/form. err=%v", err)
-		respondJson(w, http.StatusBadRequest, map[string]string{
-			"error": "error on parsing request",
-		})
+		respondErrorJson(w, http.StatusBadRequest, "file's too large. size cannot be above 100MB")
 		return
 	}
 
@@ -113,9 +111,7 @@ func (p *post) Post(w http.ResponseWriter, r *http.Request) {
 	file, header, err := r.FormFile("file")
 	if err != nil {
 		log.Printf("error on getting file. err=%v", err)
-		respondJson(w, http.StatusBadRequest, map[string]string{
-			"error": "error on reading file on request",
-		})
+		respondErrorJson(w, http.StatusBadRequest, "error on reading file on request")
 		return
 	}
 	if file != nil {
@@ -145,9 +141,7 @@ func (p *post) Post(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		log.Printf("error on submitting post. err=%v", err)
-		respondJson(w, http.StatusInternalServerError, map[string]string{
-			"error": "error processing post submission",
-		})
+		respondErrorJson(w, http.StatusInternalServerError, "error processing post submission")
 		return
 	}
 
