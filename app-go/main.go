@@ -17,7 +17,7 @@ import (
 )
 
 func main() {
-	log.Println("starting server...")
+	log.Println("initiating pre-requisites...")
 
 	// NOTE: add base initialization here
 	// ======================================
@@ -29,11 +29,11 @@ func main() {
 	}
 
 	// initialize postgres client
-	connectionString := `0.0.0.0 user=local password=local dbname=image_poster port=5432 sslmode=disable`
+	connectionString := `host=0.0.0.0 user=local password=local dbname=image_poster port=5432 sslmode=disable`
 	postgresClient := postgres.New(connectionString)
 
 	// initialize repositories
-	postRepo := postpkgrepo.New(postgresClient.GetDb())
+	postRepo := postpkgrepo.New(postgresClient)
 
 	// initialize modules
 	filestorageS3module := filestorageS3pkg.New(awscfg)
@@ -46,6 +46,8 @@ func main() {
 
 	// NOTE: add server starter on the following
 	// =========================================
+	log.Println("starting server...")
+
 	postgresClient.Start() // start postgres connection
 	httpserver.Start()     // start http server
 

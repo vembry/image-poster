@@ -7,10 +7,13 @@ import (
 	"app-go/internal/modules/post/models"
 	"app-go/internal/modules/post/repositories"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"time"
+
+	"github.com/segmentio/ksuid"
 )
 
 type post struct {
@@ -28,23 +31,61 @@ func New(postRepo repositories.IPost, uploader filestorage.IUpload) *post {
 
 // CreatePost creates a new post entry
 func (p *post) CreatePost(ctx context.Context, args models.CreatePostArg) error {
-	// upload file
-	err := p.uploader.Upload(ctx, filestoragemodels.UploadArgs{
+	var (
+		rollbackFns []func() // to contain rollback functionalities, if needed
+		err         error
+	)
+	defer func() {
+		if err != nil {
+			// rollback when function ends with error
+			for _, rollbackFn := range rollbackFns {
+				rollbackFn()
+			}
+		}
+	}()
+
+	// construct upload arg
+	filename := fmt.Sprintf("%d-%s", time.Now().UnixMilli(), args.File.Name)
+	uploadArg := filestoragemodels.UploadArgs{
 		File: internalmodels.File{
-			Name:        fmt.Sprintf("%d-%s", time.Now().UnixMilli(), args.File.Name), // append
+			Name:        filename,
 			ContentType: args.File.ContentType,
 			Content:     args.File.Content,
 		},
-	})
+	}
+
+	// upload file
+	err = p.uploader.Upload(ctx, uploadArg)
 	if err != nil {
 		log.Printf("error on uploading file. err=%v", err)
 		return errors.New("failed to upload file")
 	}
 
-	// save as post entry
-	// ...
+	// append rollback handler
+	rollbackFns = append(rollbackFns, func() {
+		_ = p.uploader.RollbackUpload(ctx, uploadArg)
+	})
 
-	log.Print(args.File)
+	// construct image
+	image := models.PostImage{
+		Original: filename,
+	}
+	raw, _ := json.Marshal(image)
+
+	// save post entry
+	err = p.postRepo.Create(ctx, models.Post{
+		Id:        ksuid.New(),
+		Text:      args.Text,
+		Image:     raw,
+		CreatedBy: args.Creator,
+	})
+	if err != nil {
+		log.Printf("error on saving post to database. err=%v", err)
+		return errors.New("error on saving post to database")
+	}
+
+	// enqueue post's for image transform
+	// ...
 
 	// return
 	return nil
