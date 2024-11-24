@@ -18,6 +18,7 @@ func New(connectionString string) *postgres {
 	}
 }
 
+// Start opens connection with postgres
 func (p *postgres) Start() {
 	db, err := gorm.Open(gormpostgres.Open(p.dsn), &gorm.Config{})
 	if err != nil {
@@ -27,6 +28,7 @@ func (p *postgres) Start() {
 	p.db = db
 }
 
+// Stop closes connection with postgres
 func (p *postgres) Stop() {
 	db, err := p.db.DB()
 	if err != nil {
