@@ -1,9 +1,12 @@
 package s3
 
 import (
+	internalmodels "app-go/internal/models"
 	"app-go/internal/modules/file_storage/models"
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"log"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -14,7 +17,7 @@ import (
 type s3 struct {
 	client *awss3.Client
 
-	s3bucket string
+	defaultS3Bucket string
 }
 
 // New initiate s3 apis to do file upload/download
@@ -31,21 +34,21 @@ func New(awsCfg aws.Config) *s3 {
 		client: awss3.NewFromConfig(awsCfg, opt),
 
 		// NOTE:
-		// this probably better to be defined on env var, but
-		// since theres no point doing so for now, i'll define
-		// it explicitly here
-		s3bucket: "public-images",
+		// this probably better to be defined on env var or on
+		// parameter, but since theres no point doing so for now,
+		// i'll just define it explicitly here
+		defaultS3Bucket: "public-images",
 	}
 }
 
 // Upload handle upload process to aws' s3
 func (s *s3) Upload(ctx context.Context, args models.UploadArgs) error {
 	_, err := s.client.PutObject(ctx, &awss3.PutObjectInput{
-		Bucket: &s.s3bucket,
+		Bucket: &s.defaultS3Bucket,
 		Key:    &args.File.Name,
 		ACL:    types.ObjectCannedACLPublicRead,
 
-		Body:        args.File.Content,
+		Body:        bytes.NewReader(args.File.Content),
 		ContentType: aws.String(string(args.File.ContentType)),
 	})
 	if err != nil {
@@ -60,7 +63,7 @@ func (s *s3) Upload(ctx context.Context, args models.UploadArgs) error {
 // RollbackUpload handle rollback process upload
 func (s *s3) RollbackUpload(ctx context.Context, args models.UploadArgs) error {
 	_, err := s.client.DeleteObject(ctx, &awss3.DeleteObjectInput{
-		Bucket: &s.s3bucket,
+		Bucket: &s.defaultS3Bucket,
 		Key:    &args.File.Name,
 	})
 	if err != nil {
@@ -70,4 +73,33 @@ func (s *s3) RollbackUpload(ctx context.Context, args models.UploadArgs) error {
 	}
 
 	return nil
+}
+
+func (s *s3) Download(ctx context.Context, fileKey string) (*models.DownloadResponse, error) {
+	// download from s3
+	res, err := s.client.GetObject(ctx, &awss3.GetObjectInput{
+		Bucket: &s.defaultS3Bucket,
+		Key:    &fileKey,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error on getting file from s3. err=%w", err)
+	}
+	if res != nil {
+		defer res.Body.Close()
+	}
+
+	// read file
+	imageRaw, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error on reading file from s3. err=%w", err)
+	}
+
+	fileBuffer := bytes.NewBuffer(imageRaw)
+
+	return &models.DownloadResponse{
+		File: internalmodels.File{
+			ContentType: *res.ContentType,
+			Content:     fileBuffer.Bytes(),
+		},
+	}, nil
 }

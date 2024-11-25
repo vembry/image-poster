@@ -1,7 +1,5 @@
 package models
 
-import "mime/multipart"
-
 // FileContentType is enum types containing file type
 type FileContentType string
 
@@ -18,6 +16,6 @@ const (
 // File contain basic information to pass file informations
 type File struct {
 	Name        string
-	ContentType FileContentType
-	Content     multipart.File
+	ContentType string
+	Content     []byte
 }

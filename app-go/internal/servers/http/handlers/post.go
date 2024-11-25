@@ -5,6 +5,8 @@ import (
 	postmodule "app-go/internal/modules/post"
 	postmodels "app-go/internal/modules/post/models"
 	"app-go/internal/servers/http/middlewares"
+	"bytes"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
@@ -119,9 +121,17 @@ func (p *post) Post(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// validate file type
-	contentType, ok := allowedImageType[header.Header.Get("Content-Type")]
+	contentTypeRaw := header.Header.Get("Content-Type")
+	_, ok := allowedImageType[contentTypeRaw]
 	if !ok {
 		respondErrorJson(w, http.StatusBadRequest, "invalid file types")
+		return
+	}
+
+	var buffer bytes.Buffer
+	_, err = io.Copy(&buffer, file)
+	if err != nil {
+		respondErrorJson(w, http.StatusBadRequest, "error on converting file into buffer")
 		return
 	}
 
@@ -135,8 +145,8 @@ func (p *post) Post(w http.ResponseWriter, r *http.Request) {
 		Text:    text,
 		File: models.File{
 			Name:        header.Filename,
-			ContentType: contentType,
-			Content:     file,
+			ContentType: contentTypeRaw,
+			Content:     buffer.Bytes(),
 		},
 	})
 	if err != nil {
