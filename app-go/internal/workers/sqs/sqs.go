@@ -38,7 +38,8 @@ func (s *sqs) RegisterHandlers(handlers ...IHandler) {
 }
 
 func (s *sqs) Start() {
-
+	// iterate through all registered handler
+	// and run them using goroutine
 	for _, handler := range s.handlers {
 		go s.runHandler(handler)
 	}
@@ -47,7 +48,7 @@ func (s *sqs) Start() {
 
 // runHandler define how to consume message per handler
 func (s *sqs) runHandler(handler IHandler) {
-	handler.injectClient(s.client)
+	handler.injectClient(s.client) // inject sqs client into handler instance
 
 	// consume message every 1 second
 	for range time.Tick(time.Second) {
