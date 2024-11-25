@@ -22,6 +22,7 @@ type post struct {
 	postStructureRepo    repositories.IPostStructure
 	uploader             filestorage.IUpload
 	imageTransformWorker workers.IImageTransformWorker
+	s3BaseUrl            string
 }
 
 // New initialize post domain's service
@@ -30,12 +31,15 @@ func New(
 	postStructureRepo repositories.IPostStructure,
 	uploader filestorage.IUpload,
 	imageTransformWorker workers.IImageTransformWorker,
+	s3host string,
+	s3bucket string,
 ) *post {
 	return &post{
 		postRepo:             postRepo,
 		postStructureRepo:    postStructureRepo,
 		uploader:             uploader,
 		imageTransformWorker: imageTransformWorker,
+		s3BaseUrl:            fmt.Sprintf("%s/%s", s3host, s3bucket),
 	}
 }
 
@@ -218,7 +222,15 @@ func (p *post) GetPosts(ctx context.Context, args models.GetPostsArg) (*models.G
 
 		val.Text = post.Text
 		val.Creator = post.CreatedBy
-		val.Image = image
+
+		// attach s3 base url to image link
+		val.Image = models.PostImage{
+			Original: fmt.Sprintf("%s/%s", p.s3BaseUrl, image.Original),
+		}
+
+		if image.Transformed != "" {
+			val.Image.Transformed = fmt.Sprintf("%s/%s", p.s3BaseUrl, image.Transformed)
+		}
 	}
 
 	// retrieve posts' comments

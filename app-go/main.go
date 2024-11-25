@@ -57,8 +57,15 @@ func main() {
 	postStructureRepo := postpkgrepo.NewPostStructure(postgresClient)
 
 	// initialize modules
-	filestorageS3module := filestorageS3pkg.New(awscfg)
-	postmodule := postpkg.New(postRepo, postStructureRepo, filestorageS3module, imageTransformWorkerSqs)
+	filestorageS3module := filestorageS3pkg.New(awscfg, appConfig.AWS.S3.DefaultBucket)
+	postmodule := postpkg.New(
+		postRepo,
+		postStructureRepo,
+		filestorageS3module,
+		imageTransformWorkerSqs,
+		appConfig.AWS.S3.URL,
+		appConfig.AWS.S3.DefaultBucket,
+	)
 	commentmodule := postpkg.NewComment(postRepo, postStructureRepo)
 
 	// inject additional dependencies

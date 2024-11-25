@@ -24,6 +24,11 @@ type EnvConfig struct {
 			// NOTE: add more queue urls here
 			// ...
 		}
+
+		S3 struct {
+			URL           string `env:"AWS_ENDPOINT_URL_S3"`
+			DefaultBucket string `env:"AWS_S3_DEFAULT_BUCKET"`
+		}
 	}
 }
 

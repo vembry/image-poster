@@ -17,11 +17,11 @@ import (
 type s3 struct {
 	client *awss3.Client
 
-	defaultS3Bucket string
+	defaultBucket string
 }
 
 // New initiate s3 apis to do file upload/download
-func New(awsCfg aws.Config) *s3 {
+func New(awsCfg aws.Config, defaultBucket string) *s3 {
 	opt := func(o *awss3.Options) {
 		o.UsePathStyle = true
 	}
@@ -37,14 +37,14 @@ func New(awsCfg aws.Config) *s3 {
 		// this probably better to be defined on env var or on
 		// parameter, but since theres no point doing so for now,
 		// i'll just define it explicitly here
-		defaultS3Bucket: "public-images",
+		defaultBucket: defaultBucket,
 	}
 }
 
 // Upload handle upload process to aws' s3
 func (s *s3) Upload(ctx context.Context, args models.UploadArgs) error {
 	_, err := s.client.PutObject(ctx, &awss3.PutObjectInput{
-		Bucket: &s.defaultS3Bucket,
+		Bucket: &s.defaultBucket,
 		Key:    &args.File.Name,
 		ACL:    types.ObjectCannedACLPublicRead,
 
@@ -63,7 +63,7 @@ func (s *s3) Upload(ctx context.Context, args models.UploadArgs) error {
 // RollbackUpload handle rollback process upload
 func (s *s3) RollbackUpload(ctx context.Context, args models.UploadArgs) error {
 	_, err := s.client.DeleteObject(ctx, &awss3.DeleteObjectInput{
-		Bucket: &s.defaultS3Bucket,
+		Bucket: &s.defaultBucket,
 		Key:    &args.File.Name,
 	})
 	if err != nil {
@@ -78,7 +78,7 @@ func (s *s3) RollbackUpload(ctx context.Context, args models.UploadArgs) error {
 func (s *s3) Download(ctx context.Context, fileKey string) (*models.DownloadResponse, error) {
 	// download from s3
 	res, err := s.client.GetObject(ctx, &awss3.GetObjectInput{
-		Bucket: &s.defaultS3Bucket,
+		Bucket: &s.defaultBucket,
 		Key:    &fileKey,
 	})
 	if err != nil {
