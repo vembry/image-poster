@@ -28,6 +28,21 @@ func (p *postStructure) Create(ctx context.Context, entry models.PostStructure) 
 	return nil
 }
 
+func (p *postStructure) RollbackCreate(ctx context.Context, entry models.PostStructure) error {
+	// delete entry
+	err := p.dbProvider.GetDb().
+		WithContext(ctx).
+		Table("post_structures").
+		Where("post_id = ?", entry.PostId).
+		Delete(&models.PostStructure{}).
+		Error
+	if err != nil {
+		return fmt.Errorf("error on rolling back post structure creation from database. err=%w", err)
+	}
+
+	return nil
+}
+
 func (p *postStructure) GetMultipleWithCursor(ctx context.Context, limit int, offset int) ([]*models.PostStructure, error) {
 	// retrieve row count
 	var totalRows int64

@@ -41,7 +41,7 @@ func (p *post) RollbackCreate(ctx context.Context, entry *models.Post) error {
 		Delete(&entry).
 		Error
 	if err != nil {
-		return fmt.Errorf("error on rolling back post creation to database. err=%w", err)
+		return fmt.Errorf("error on rolling back post creation from database. err=%w", err)
 	}
 
 	return nil

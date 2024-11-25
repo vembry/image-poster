@@ -19,6 +19,9 @@ type IPostStructure interface {
 	// Create create post structure entry
 	Create(ctx context.Context, entry models.PostStructure) error
 
+	// RollbackCreate rollbacks post structure entry creation
+	RollbackCreate(ctx context.Context, entry models.PostStructure) error
+
 	// GetMultipleWithCursor get list of posts with cursor
 	GetMultipleWithCursor(ctx context.Context, limit int, offset int) ([]*models.PostStructure, error)
 }
