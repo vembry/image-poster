@@ -53,10 +53,16 @@ type GetPostsResponse struct {
 }
 
 type PostResponse struct {
-	Id      ksuid.KSUID `json:"id"`
-	Text    string      `json:"text"`
-	Creator string      `json:"creator"`
-	Image   PostImage   `json:"image"`
+	Id       ksuid.KSUID       `json:"id"`
+	Text     string            `json:"text"`
+	Creator  string            `json:"creator"`
+	Image    PostImage         `json:"image"`
+	Comments []CommentResponse `json:"comments"`
+}
+
+type CommentResponse struct {
+	Id   ksuid.KSUID `json:"id"`
+	Text string      `json:"text"`
 }
 
 type PostCommentArg struct {
