@@ -6,8 +6,13 @@ import (
 )
 
 type IPost interface {
+	GetPost(ctx context.Context, postId string) (*models.Post, error)
 	GetPosts(ctx context.Context, args models.GetPostsArg) (*models.GetPostsResponse, error)
 	CreatePost(ctx context.Context, args models.CreatePostArg) error
+	Update(ctx context.Context, post *models.Post) error
+}
+
+type IComment interface {
 	PostComment(ctx context.Context, args models.PostCommentArg) error
 	DeleteComment(ctx context.Context, args models.DeleteCommentArg) error
 }

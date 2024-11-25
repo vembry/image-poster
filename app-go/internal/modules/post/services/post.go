@@ -6,6 +6,7 @@ import (
 	filestoragemodels "app-go/internal/modules/file_storage/models"
 	"app-go/internal/modules/post/models"
 	"app-go/internal/modules/post/repositories"
+	"app-go/internal/workers"
 	"context"
 	"encoding/json"
 	"errors"
@@ -15,17 +16,24 @@ import (
 )
 
 type post struct {
-	postRepo          repositories.IPost
-	postStructureRepo repositories.IPostStructure
-	uploader          filestorage.IUpload
+	postRepo             repositories.IPost
+	postStructureRepo    repositories.IPostStructure
+	uploader             filestorage.IUpload
+	imageTransformWorker workers.IImageTransformWorker
 }
 
 // New initialize post domain's service
-func New(postRepo repositories.IPost, postStructureRepo repositories.IPostStructure, uploader filestorage.IUpload) *post {
+func New(
+	postRepo repositories.IPost,
+	postStructureRepo repositories.IPostStructure,
+	uploader filestorage.IUpload,
+	imageTransformWorker workers.IImageTransformWorker,
+) *post {
 	return &post{
-		postRepo:          postRepo,
-		postStructureRepo: postStructureRepo,
-		uploader:          uploader,
+		postRepo:             postRepo,
+		postStructureRepo:    postStructureRepo,
+		uploader:             uploader,
+		imageTransformWorker: imageTransformWorker,
 	}
 }
 
@@ -61,10 +69,15 @@ func (p *post) CreatePost(ctx context.Context, args models.CreatePostArg) error 
 		return errors.New("failed to upload file")
 	}
 
-	// append rollback handler
-	rollbackFns = append(rollbackFns, func() {
-		_ = p.uploader.RollbackUpload(ctx, uploadArg)
-	})
+	// append rollback handler for upload file
+	rollbackFns = append(
+		[]func(){
+			func() {
+				_ = p.uploader.RollbackUpload(ctx, uploadArg)
+			},
+		},
+		rollbackFns...,
+	)
 
 	// construct image
 	image := models.PostImage{
@@ -86,27 +99,50 @@ func (p *post) CreatePost(ctx context.Context, args models.CreatePostArg) error 
 		return errors.New("error on saving post to database")
 	}
 
-	// append rollback handler
-	rollbackFns = append(rollbackFns, func() {
-		_ = p.postRepo.RollbackCreate(ctx, post)
-	})
+	// append rollback handler for post creation
+	rollbackFns = append(
+		[]func(){
+			func() {
+				_ = p.postRepo.RollbackCreate(ctx, post)
+			},
+		},
+		rollbackFns...,
+	)
 
-	// create post-structure entry
-	err = p.postStructureRepo.Create(ctx, models.PostStructure{
+	// construct payload
+	postStructure := models.PostStructure{
 		PostId: post.Id,
-	})
+	}
+	// create post-structure entry
+	err = p.postStructureRepo.Create(ctx, postStructure)
 	if err != nil {
 		log.Printf("error on saving post structures to database. err=%v", err)
 		return errors.New("error on saving post structures to database")
 	}
 
-	// enqueue post's for image transform
+	// append rollback handler for post-structure creation
+	rollbackFns = append(
+		[]func(){
+			func() {
+				_ = p.postStructureRepo.RollbackCreate(ctx, postStructure)
+			},
+		},
+		rollbackFns...,
+	)
 
-	// TODO: implements enquque for image transform
-	// ...
+	// enqueue post's for image transform
+	err = p.imageTransformWorker.Enqueue(ctx, post.Id.String())
+	if err != nil {
+		log.Printf("error on enqueuing post for image transform. err=%v", err)
+		return errors.New("error on enqueuing post for image transform")
+	}
 
 	// return
 	return nil
+}
+
+func (p *post) GetPost(ctx context.Context, postId string) (*models.Post, error) {
+	return nil, nil
 }
 
 // GetPosts return a list of posts based on provided arguments
@@ -168,5 +204,10 @@ func (p *post) PostComment(ctx context.Context, args models.PostCommentArg) erro
 
 // DeleteComment deletes a comment entry from a post
 func (p *post) DeleteComment(ctx context.Context, args models.DeleteCommentArg) error {
+	return nil
+}
+
+// PostComment creates a comment entry of a post
+func (p *post) Update(ctx context.Context, post *models.Post) error {
 	return nil
 }

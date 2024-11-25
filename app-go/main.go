@@ -8,6 +8,7 @@ import (
 	postpkg "app-go/internal/modules/post/services"
 	"app-go/internal/servers/http"
 	"app-go/internal/servers/http/handlers"
+	"app-go/internal/workers/sqs"
 	"context"
 	"embed"
 	"log"
@@ -37,6 +38,17 @@ func main() {
 		log.Fatalf("error on loading aws config. err=%v", err)
 	}
 
+	// initialize worker handler
+	imageTransformWorkerSqs := sqs.NewImageTransformer(appConfig.AWS.Sqs.ImageTransformQueueUrl)
+
+	// initialize worker engine with sqs
+	sqsworker := sqs.New(awscfg)
+	sqsworker.RegisterHandlers(
+		imageTransformWorkerSqs,
+		// NOTE: register more worker here
+		// ...
+	)
+
 	// initialize postgres client
 	postgresClient := postgres.New(appConfig.Postgres.ConnectionString)
 
@@ -46,7 +58,7 @@ func main() {
 
 	// initialize modules
 	filestorageS3module := filestorageS3pkg.New(awscfg)
-	postmodule := postpkg.New(postRepo, postStructureRepo, filestorageS3module)
+	postmodule := postpkg.New(postRepo, postStructureRepo, filestorageS3module, imageTransformWorkerSqs)
 
 	// NOTE: add server initialization on the following
 	// ================================================
@@ -55,10 +67,11 @@ func main() {
 
 	// NOTE: add server starter on the following
 	// =========================================
-	log.Println("starting server...")
+	log.Println("starting server/worker...")
 
-	postgresClient.Start() // start postgres connection
-	httpserver.Start()     // start http server
+	postgresClient.Start() // starts postgres connection
+	httpserver.Start()     // starts http server
+	sqsworker.Start()      // starts sqs worker
 
 	// "hang" the server and keep it
 	// running until app got exit signal
@@ -70,8 +83,9 @@ func main() {
 	// NOTE: add shutdown handler on the following
 	// ===========================================
 
-	httpserver.Stop()     // stopping http server
-	postgresClient.Stop() // closing postgress connection
+	postgresClient.Stop() // closes postgres connection
+	httpserver.Stop()     // stops http server
+	sqsworker.Stop()      // stops sqs worker
 
 	log.Println("server stopped")
 }
