@@ -27,3 +27,22 @@ services:
       interval: 1s
       timeout: 5s
       retries: 5
+
+  app-go:
+    container_name: app-go
+    image: app-go:latest
+    build:
+      context: ./app-go
+      dockerfile: Dockerfile
+    command: /app-go
+    ports:
+      - "4000:4000"
+    depends_on:
+      - postgres
+      - localstack
+    environment:
+      APP_ENVIRONMENT: development
+      HTTP_ADDRESS: 0.0.0.0:4000
+      AWS_ENDPOINT_URL_S3: http://localstack:4566
+      AWS_ENDPOINT_URL_SQS: http://localstack:4566
+      POSTGRES_CONNECTION_STRING: host=postgres user=local password=local dbname=image_poster port=5432 sslmode=disable 
