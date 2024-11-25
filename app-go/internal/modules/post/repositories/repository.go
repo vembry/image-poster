@@ -28,6 +28,9 @@ type IPostStructure interface {
 	// RollbackCreate rollbacks post structure entry creation
 	RollbackCreate(ctx context.Context, entry models.PostStructure) error
 
-	// GetMultipleWithCursor get list of posts with cursor
-	GetMultipleWithCursor(ctx context.Context, limit int, offset int) ([]*models.PostStructure, error)
+	// GetMultipleParentless get list of posts with cursor
+	GetMultipleParentlessWithCursor(ctx context.Context, limit int, offset int) ([]*models.PostStructure, error)
+
+	// GetChildrenWithParentPostIdsAndChildrenLimitCount get list of comment limited by 'childrenLimit'
+	GetChildrenWithParentPostIdsAndChildrenLimitCount(ctx context.Context, ids []string, childrenLimit int) ([]*models.PostStructure, error)
 }

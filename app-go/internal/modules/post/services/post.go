@@ -160,7 +160,7 @@ func (p *post) GetPost(ctx context.Context, postId string) (*models.Post, error)
 // GetPosts return a list of posts based on provided arguments
 func (p *post) GetPosts(ctx context.Context, args models.GetPostsArg) (*models.GetPostsResponse, error) {
 	// attempt to get available posts based on parameter
-	postStructures, err := p.postStructureRepo.GetMultipleWithCursor(ctx, args.Limit, args.Limit*(args.Page-1))
+	postStructures, err := p.postStructureRepo.GetMultipleParentlessWithCursor(ctx, args.Limit, args.Limit*(args.Page-1))
 	if err != nil {
 		log.Printf("error on getting post structures from database. err=%v", err)
 		return nil, errors.New("error on getting post structures from database")
@@ -186,7 +186,8 @@ func (p *post) GetPosts(ctx context.Context, args models.GetPostsArg) (*models.G
 		postIds = append(postIds, postId)
 
 		postResponse := &models.PostResponse{
-			Id: postStpostStructure.PostId,
+			Id:       postStpostStructure.PostId,
+			Comments: []models.CommentResponse{},
 		}
 
 		postResponseMap[postId] = postResponse
@@ -197,7 +198,7 @@ func (p *post) GetPosts(ctx context.Context, args models.GetPostsArg) (*models.G
 	posts, err := p.postRepo.GetByMultipleIds(ctx, postIds)
 	if err != nil {
 		log.Printf("error on getting posts from database. err=%v", err)
-		return nil, errors.New("error on getting post structures from database")
+		return nil, errors.New("error on getting posts from database")
 	}
 
 	// convert posts into post-responses
@@ -218,7 +219,43 @@ func (p *post) GetPosts(ctx context.Context, args models.GetPostsArg) (*models.G
 		val.Text = post.Text
 		val.Creator = post.CreatedBy
 		val.Image = image
+	}
 
+	// retrieve posts' comments
+	commentStructures, err := p.postStructureRepo.GetChildrenWithParentPostIdsAndChildrenLimitCount(ctx, postIds, 2)
+	if err != nil {
+		log.Printf("error on getting limited comments from database. err=%v", err)
+		return nil, errors.New("error on getting limited comments from database")
+	}
+
+	commentIds := []string{}
+	commentsMap := map[string]string{}
+	for _, commentStructure := range commentStructures {
+		commentIds = append(commentIds, commentStructure.PostId.String())
+		commentsMap[commentStructure.PostId.String()] = commentStructure.ParentPostId.String
+	}
+
+	comments, err := p.postRepo.GetByMultipleIds(ctx, commentIds)
+	if err != nil {
+		log.Printf("error on getting comments from database. err=%v", err)
+		return nil, errors.New("error on getting comments from database")
+	}
+
+	for _, comment := range comments {
+		val, ok := commentsMap[comment.Id.String()]
+		if !ok {
+			continue
+		}
+
+		val1, ok := postResponseMap[val]
+		if !ok {
+			continue
+		}
+
+		val1.Comments = append(val1.Comments, models.CommentResponse{
+			Id:   comment.Id,
+			Text: comment.Text,
+		})
 	}
 
 	return &models.GetPostsResponse{

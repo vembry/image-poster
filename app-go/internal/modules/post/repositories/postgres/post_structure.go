@@ -43,7 +43,7 @@ func (p *postStructure) RollbackCreate(ctx context.Context, entry models.PostStr
 	return nil
 }
 
-func (p *postStructure) GetMultipleWithCursor(ctx context.Context, limit int, offset int) ([]*models.PostStructure, error) {
+func (p *postStructure) GetMultipleParentlessWithCursor(ctx context.Context, limit int, offset int) ([]*models.PostStructure, error) {
 	// retrieve row count
 	var totalRows int64
 	err := p.dbProvider.GetDb().
@@ -81,6 +81,39 @@ func (p *postStructure) GetMultipleWithCursor(ctx context.Context, limit int, of
 			LIMIT ?
 			OFFSET ?
 		`, limit, offset).
+		Scan(&out).
+		Error
+	if err != nil {
+		return out, fmt.Errorf("error on getting list post entry from database. err=%w", err)
+	}
+
+	return out, nil
+}
+
+func (p *postStructure) GetChildrenWithParentPostIdsAndChildrenLimitCount(ctx context.Context, ids []string, childrenLimit int) ([]*models.PostStructure, error) {
+	// retrieve rows
+	var out []*models.PostStructure
+	err := p.dbProvider.GetDb().
+		WithContext(ctx).
+		Raw(`
+			select 
+				sub.post_id,
+				sub.parent_post_id
+			from post_structures ps 
+				left join lateral (
+					select 
+						ps1.post_id,
+						ps1.parent_post_id
+					from post_structures ps1
+					where ps1.parent_post_id = ps.post_id
+					order by ps1.post_id desc
+					limit ?
+				) sub on true and sub.post_id is not NULL
+			where 
+				ps.parent_post_id is null 
+				and sub.post_id is not null
+				and ps.post_id IN(?) 
+		`, childrenLimit, ids).
 		Scan(&out).
 		Error
 	if err != nil {
