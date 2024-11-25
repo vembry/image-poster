@@ -1,7 +1,7 @@
 # setup localstack
 setup-localstack:
-	# initialize s3
-	. ./.docker/localstack/init-s3.sh
+	# initialize aws
+	. ./.docker/localstack/init.sh
 
 # setup local cluster 
 up:
