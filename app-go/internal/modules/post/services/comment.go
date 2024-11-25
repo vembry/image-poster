@@ -95,7 +95,8 @@ func (c *comment) Delete(ctx context.Context, args models.DeleteCommentArg) erro
 
 	// do soft delete
 	existingComment.DeletedAt = sql.NullTime{
-		Time: time.Now().UTC(),
+		Time:  time.Now().UTC(),
+		Valid: true,
 	}
 
 	// update comment
