@@ -6,19 +6,23 @@ import (
 	postmodels "app-go/internal/modules/post/models"
 	"app-go/internal/servers/http/middlewares"
 	"bytes"
+	"encoding/json"
 	"io"
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 type post struct {
-	postProvider postmodule.IPost
+	postProvider    postmodule.IPost
+	commentProvider postmodule.IComment
 }
 
-func NewPost(postProvider postmodule.IPost) *post {
+func NewPost(postProvider postmodule.IPost, commentProvider postmodule.IComment) *post {
 	return &post{
-		postProvider: postProvider,
+		postProvider:    postProvider,
+		commentProvider: commentProvider,
 	}
 }
 
@@ -35,7 +39,7 @@ func (p *post) GetRoutes() *http.ServeMux {
 	postmux.HandleFunc("GET /list", p.ListPost)
 	postmux.HandleFunc("POST /", p.Post)
 	postmux.HandleFunc("POST /{postId}/comment", p.PostComment)
-	postmux.HandleFunc("DELETE /{postId}/comment/{commentId}", p.DeleteComment)
+	postmux.HandleFunc("DELETE /comment/{commentId}", p.DeleteComment)
 
 	// group endpoints with 1 prefix
 	group := http.NewServeMux()
@@ -136,8 +140,12 @@ func (p *post) Post(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// read non-file payload from request
-	text := r.FormValue("text")          // get caption from body
-	creator := r.Header.Get("x-user-id") // get creator from header's x-user-id
+	text := r.FormValue("text")                             // get caption from body
+	creator := strings.TrimSpace(r.Header.Get("x-user-id")) // get creator from header's x-user-id
+	if creator == "" {
+		respondErrorJson(w, http.StatusBadRequest, "missing user-id")
+		return
+	}
 
 	// call service
 	err = p.postProvider.CreatePost(r.Context(), postmodels.CreatePostArg{
@@ -161,15 +169,76 @@ func (p *post) Post(w http.ResponseWriter, r *http.Request) {
 
 // PostComment handle http request to post a comment on a post
 func (p *post) PostComment(w http.ResponseWriter, r *http.Request) {
-	respondJson(w, http.StatusOK, map[string]string{
-		"postId": r.PathValue("postId"),
+	postId := r.PathValue("postId")
+	if strings.TrimSpace(postId) == "" {
+		respondErrorJson(w, http.StatusBadRequest, "missing post-id on path variable")
+		return
+	}
+
+	creator := strings.TrimSpace(r.Header.Get("x-user-id")) // get creator from header's x-user-id
+	if creator == "" {
+		respondErrorJson(w, http.StatusBadRequest, "missing user-id")
+		return
+	}
+
+	// read payload
+	bodyraw, err := io.ReadAll(r.Body)
+	if err != nil {
+		respondErrorJson(w, http.StatusBadRequest, "unable to read request body")
+		return
+	}
+	defer r.Body.Close()
+
+	type body struct {
+		Text string `json:"text"`
+	}
+
+	var payload body
+	err = json.Unmarshal(bodyraw, &payload)
+	if err != nil {
+		respondErrorJson(w, http.StatusBadRequest, "unable to parse request body")
+		return
+	}
+
+	// call service
+	err = p.commentProvider.Post(r.Context(), postmodels.PostCommentArg{
+		PostId:  postId,
+		Text:    payload.Text,
+		Creator: creator,
 	})
+	if err != nil {
+		respondErrorJson(w, http.StatusInternalServerError, "unable to process comment request")
+		return
+	}
+
+	// end
+	respondJson(w, http.StatusOK, struct{}{})
 }
 
 // DeleteComment handle http request to delete a comment from a post.
 func (p *post) DeleteComment(w http.ResponseWriter, r *http.Request) {
-	respondJson(w, http.StatusOK, map[string]string{
-		"postId":    r.PathValue("postId"),
-		"commentId": r.PathValue("commentId"),
+	commentId := r.PathValue("commentId")
+	if strings.TrimSpace(commentId) == "" {
+		respondErrorJson(w, http.StatusBadRequest, "missing post-id on path variable")
+		return
+	}
+
+	requester := strings.TrimSpace(r.Header.Get("x-user-id")) // get creator from header's x-user-id
+	if requester == "" {
+		respondErrorJson(w, http.StatusBadRequest, "missing user-id")
+		return
+	}
+
+	// call service
+	err := p.commentProvider.Delete(r.Context(), postmodels.DeleteCommentArg{
+		CommentId: commentId,
+		Requester: requester,
 	})
+	if err != nil {
+		respondErrorJson(w, http.StatusInternalServerError, "unable to process comment deletion request")
+		return
+	}
+
+	// end
+	respondJson(w, http.StatusOK, struct{}{})
 }

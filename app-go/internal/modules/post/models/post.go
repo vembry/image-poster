@@ -59,5 +59,13 @@ type PostResponse struct {
 	Image   PostImage   `json:"image"`
 }
 
-type PostCommentArg struct{}
-type DeleteCommentArg struct{}
+type PostCommentArg struct {
+	PostId  string
+	Text    string
+	Creator string
+}
+
+type DeleteCommentArg struct {
+	CommentId string
+	Requester string
+}

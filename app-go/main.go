@@ -59,6 +59,7 @@ func main() {
 	// initialize modules
 	filestorageS3module := filestorageS3pkg.New(awscfg)
 	postmodule := postpkg.New(postRepo, postStructureRepo, filestorageS3module, imageTransformWorkerSqs)
+	commentmodule := postpkg.NewComment(postRepo, postStructureRepo)
 
 	// inject additional dependencies
 	imageTransformWorkerSqs.InjectDeps(
@@ -69,8 +70,8 @@ func main() {
 
 	// NOTE: add server initialization on the following
 	// ================================================
-	posthandler := handlers.NewPost(postmodule)  // initialize handler
-	httpserver := http.New(":4000", posthandler) // initialize http server
+	posthandler := handlers.NewPost(postmodule, commentmodule) // initialize handler
+	httpserver := http.New(":4000", posthandler)               // initialize http server
 
 	// NOTE: add server starter on the following
 	// =========================================

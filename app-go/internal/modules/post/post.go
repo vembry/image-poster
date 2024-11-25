@@ -13,6 +13,9 @@ type IPost interface {
 }
 
 type IComment interface {
-	PostComment(ctx context.Context, args models.PostCommentArg) error
-	DeleteComment(ctx context.Context, args models.DeleteCommentArg) error
+	// Post creates a comment on a post
+	Post(ctx context.Context, args models.PostCommentArg) error
+
+	// Delete deletes a comment on a post. Deletion only allow for self-made comment
+	Delete(ctx context.Context, args models.DeleteCommentArg) error
 }
