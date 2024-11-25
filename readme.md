@@ -150,3 +150,6 @@ to assists the setup
 ### `./postman`
 containing curls for the app-go http
 
+# what to enhance
+1. separate worker and server, as of the making, i didnt the two, which means, both will share resources. On high RPS this will affect overall performance
+2. to make it more like reddit? haha
