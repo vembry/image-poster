@@ -177,4 +177,6 @@ containing curls for the app-go http
     2. On high RPS this will affect overall performance, since both will fight for resource
 2. implement authentication. User/auth are very complicated to implement, which is why i skipped it in current iteration 
     1. i added a middleware for auth, but hasnt enforce the authentication since theres no resource yet
-3. make it more like reddit? haha
+3. scaling, 
+    1. placing the `app-go` behind a load balancer can help us scale the app horizontally.
+4. make it more like reddit? haha
