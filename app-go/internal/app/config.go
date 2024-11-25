@@ -16,6 +16,14 @@ type EnvConfig struct {
 	Postgres struct {
 		ConnectionString string `env:"POSTGRES_CONNECTION_STRING"`
 	}
+	AWS struct {
+		Sqs struct {
+			ImageTransformQueueUrl string `env:"AWS_SQS_QUEUE_URL_IMAGE_TRANSFORMER"`
+
+			// NOTE: add more queue urls here
+			// ...
+		}
+	}
 }
 
 // NewConfig is to parse env either from file embedded and env vars attached on os
