@@ -33,18 +33,39 @@
 - `golang` v1.23.3 as webapp
 - `postgres` @ latest version for storage
 - `docker` v27.0.3-1
-- `localstack` v4.0.2 as aws alternative for local development since i uses S3 and SQS.
-    - s3 to store the images uploaded
-    - sqs as worker queue to transform file
+- `s3` to store the images uploaded
+- `sqs` as worker queue to transform file
+- `aws-cli` v2.22.4, for local development
+    - required to setup seeder for localstack
+- `localstack` v4.0.2 to assist local development using aws, since i uses S3 and SQS.
     - ref: [link](https://www.localstack.cloud/)
-- ubuntu 24.04.1 LTS
-- vscode optional
-- vscode's Dev Container, optional
+- `ubuntu` 24.04.1 LTS
+- `vscode` optional
+- `vscode's Dev Container`, recommended
     - ref to vscode's Dev Container documentation: [link](https://code.visualstudio.com/docs/devcontainers/containers)
     - this help isolate the development in container, rather than requiring dev to setup everything independently
+    - this also help define dependencies that needed for the local cluster to run
+
+## how to run
+note: the setup mostly rely on docker
+
+1. run `make start`, it will do the following:
+    1. tear down existing local docker cluster based on definitions on docker compose file
+    2. setup pre-requisite: 
+        1. `localstack`, WARNING: i setup a "seeder" that requires aws-cli to run at `./.docker`. I highly recommended tester to use vscode dev-container for easy setup
+        2. `postgres`, i setup auto migration for the database and table definitions
+    3. build `app-go` and runs it 
+2. hit endpoints at `localhost:4000`
+    1. i provided postman collection requests for the rest endpoints on `./postman` directory
 
 ## entity
-I may have shoot myself in the foot here, I'm attempting to create a cyclic structure. So essentially both post and comment behave like post. The key difference is how we present them. The structure are stored on `post_structures` which contain only `post_id` and `parent_post_id`. `post_structures` entries with `parent_post_id` = NULL will be counted as Posts, and for entries with `parent_post_id` != NULL will be counted as Comments. I take inspiration from reddit.
+I may have shoot myself in the foot here, I'm attempting to create a cyclic structure. So essentially both post and comment behave like post with **the key difference** is how we present them.  I mainly took inspiration from reddit.
+
+There are 2 table to store the data in database:
+1. `post_structures` to store `post_id` and `parent_post_id`.
+2. `posts` to store post's info
+
+The structures are stored on `post_structures` which contain only `post_id` and `parent_post_id`. `post_structures` entries with `parent_post_id` = NULL will be counted as **Posts**, and for entries with `parent_post_id` != NULL will be counted as **Comments**. This way we can construct a chaining from main **Posts** to each it's **Comments**. We can even explore further into **Nested Comments** with this build(not included in the challenge)
 
 ## flow
 
@@ -151,6 +172,9 @@ to assists the setup
 containing curls for the app-go http
 
 # what to enhance
-1. separate worker and server, as of the making, i didnt the two, which means, both will share resources. On high RPS this will affect overall performance.
+1. separate `worker` and `server`. 
+    1. as of the making, i didnt the two, which means, both will share resources. 
+    2. On high RPS this will affect overall performance, since both will fight for resource
 2. implement authentication. User/auth are very complicated to implement, which is why i skipped it in current iteration 
-3. to make it more like reddit? haha
+    1. i added a middleware for auth, but hasnt enforce the authentication since theres no resource yet
+3. make it more like reddit? haha
