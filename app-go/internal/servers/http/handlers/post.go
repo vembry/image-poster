@@ -30,12 +30,6 @@ func NewPost(postProvider postmodule.IPost, commentProvider postmodule.IComment)
 func (p *post) GetRoutes() *http.ServeMux {
 	postmux := http.NewServeMux()
 
-	postmux.HandleFunc("GET /test", func(w http.ResponseWriter, r *http.Request) {
-		respondJson(w, http.StatusOK, map[string]string{
-			"message": "ok",
-		})
-	})
-
 	postmux.HandleFunc("GET /list", p.ListPost)
 	postmux.HandleFunc("POST /", p.Post)
 	postmux.HandleFunc("POST /{postId}/comment", p.PostComment)
