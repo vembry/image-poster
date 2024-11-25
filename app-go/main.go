@@ -60,6 +60,13 @@ func main() {
 	filestorageS3module := filestorageS3pkg.New(awscfg)
 	postmodule := postpkg.New(postRepo, postStructureRepo, filestorageS3module, imageTransformWorkerSqs)
 
+	// inject additional dependencies
+	imageTransformWorkerSqs.InjectDeps(
+		postmodule,
+		filestorageS3module,
+		filestorageS3module,
+	)
+
 	// NOTE: add server initialization on the following
 	// ================================================
 	posthandler := handlers.NewPost(postmodule)  // initialize handler

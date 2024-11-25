@@ -52,7 +52,7 @@ func (s *sqs) runHandler(handler IHandler) {
 
 	// consume message every 1 second
 	for range time.Tick(time.Second) {
-		log.Printf("fetching message for '%s'", *handler.GetQueueUrl())
+		// log.Printf("fetching message for '%s'", *handler.GetQueueUrl())
 		messageCh, _ := s.client.ReceiveMessage(context.TODO(), &awssqs.ReceiveMessageInput{
 			QueueUrl:            handler.GetQueueUrl(),
 			MaxNumberOfMessages: 1, // NOTE: need to increase this in future
