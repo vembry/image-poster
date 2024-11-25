@@ -71,7 +71,7 @@ func main() {
 	// NOTE: add server initialization on the following
 	// ================================================
 	posthandler := handlers.NewPost(postmodule, commentmodule) // initialize handler
-	httpserver := http.New(":4000", posthandler)               // initialize http server
+	httpserver := http.New(appConfig.HttpAddress, posthandler) // initialize http server
 
 	// NOTE: add server starter on the following
 	// =========================================

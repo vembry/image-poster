@@ -12,8 +12,9 @@ import (
 )
 
 type EnvConfig struct {
-	AppEnv   string `env:"APP_ENVIRONMENT"`
-	Postgres struct {
+	AppEnv      string `env:"APP_ENVIRONMENT"`
+	HttpAddress string `env:"HTTP_ADDRESS"`
+	Postgres    struct {
 		ConnectionString string `env:"POSTGRES_CONNECTION_STRING"`
 	}
 	AWS struct {
