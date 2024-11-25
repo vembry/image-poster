@@ -60,6 +60,7 @@ func (c *comment) Post(ctx context.Context, args models.PostCommentArg) error {
 		PostId: comment.Id,
 		ParentPostId: sql.NullString{
 			String: existingPost.Id.String(),
+			Valid:  true,
 		},
 	}
 

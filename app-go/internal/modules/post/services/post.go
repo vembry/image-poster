@@ -160,7 +160,7 @@ func (p *post) GetPost(ctx context.Context, postId string) (*models.Post, error)
 // GetPosts return a list of posts based on provided arguments
 func (p *post) GetPosts(ctx context.Context, args models.GetPostsArg) (*models.GetPostsResponse, error) {
 	// attempt to get available posts based on parameter
-	postStructures, err := p.postStructureRepo.GetMultipleWithCursor(ctx, args.Limit, args.Limit*args.Page)
+	postStructures, err := p.postStructureRepo.GetMultipleWithCursor(ctx, args.Limit, args.Limit*(args.Page-1))
 	if err != nil {
 		log.Printf("error on getting post structures from database. err=%v", err)
 		return nil, errors.New("error on getting post structures from database")
@@ -168,14 +168,29 @@ func (p *post) GetPosts(ctx context.Context, args models.GetPostsArg) (*models.G
 
 	if len(postStructures) == 0 {
 		return &models.GetPostsResponse{
-			List: make([]models.PostResponse, 0),
+			List: make([]*models.PostResponse, 0),
 		}, nil
 	}
 
 	// prep arg to retrieve posts by ids
 	postIds := []string{}
+
+	// constructing this so we could establish list's order
+	// and rely on pointer to populate the responses
+	postResponseMap := map[string]*models.PostResponse{}
+	postResponses := []*models.PostResponse{}
+
+	// iterate through structure retrieved
 	for _, postStpostStructure := range postStructures {
-		postIds = append(postIds, postStpostStructure.PostId.String())
+		postId := postStpostStructure.PostId.String()
+		postIds = append(postIds, postId)
+
+		postResponse := &models.PostResponse{
+			Id: postStpostStructure.PostId,
+		}
+
+		postResponseMap[postId] = postResponse
+		postResponses = append(postResponses, postResponse)
 	}
 
 	// retrieve full posts
@@ -186,7 +201,6 @@ func (p *post) GetPosts(ctx context.Context, args models.GetPostsArg) (*models.G
 	}
 
 	// convert posts into post-responses
-	postResponses := []models.PostResponse{}
 	for _, post := range posts {
 		// read image links
 		var image models.PostImage
@@ -196,12 +210,15 @@ func (p *post) GetPosts(ctx context.Context, args models.GetPostsArg) (*models.G
 			continue
 		}
 
-		postResponses = append(postResponses, models.PostResponse{
-			Id:      post.Id,
-			Text:    post.Text,
-			Creator: post.CreatedBy,
-			Image:   image,
-		})
+		val, ok := postResponseMap[post.Id.String()]
+		if !ok {
+			continue
+		}
+
+		val.Text = post.Text
+		val.Creator = post.CreatedBy
+		val.Image = image
+
 	}
 
 	return &models.GetPostsResponse{

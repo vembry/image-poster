@@ -58,7 +58,7 @@ func (p *postStructure) GetMultipleWithCursor(ctx context.Context, limit int, of
 	// NOTE:
 	// doing this because if offset went beyond actual data count
 	// it will return all data, which is bad
-	if (offset) >= int(totalRows) {
+	if (offset) > int(totalRows) {
 		return []*models.PostStructure{}, nil
 	}
 
@@ -66,11 +66,22 @@ func (p *postStructure) GetMultipleWithCursor(ctx context.Context, limit int, of
 	var out []*models.PostStructure
 	err = p.dbProvider.GetDb().
 		WithContext(ctx).
-		Table("post_structures").
-		Offset(offset).
-		Limit(limit).
-		Find(&out).
-		Where("parent_post_id = NULL").
+		Raw(`
+			SELECT 
+				p.post_id,
+				p.parent_post_id,
+				COUNT(c.post_id) as comment_count
+			FROM post_structures p
+				LEFT JOIN post_structures c ON p.post_id = c.parent_post_id
+			WHERE
+				p.parent_post_id IS NULL 
+			GROUP BY p.post_id,
+				p.parent_post_id 
+			ORDER BY comment_count DESC
+			LIMIT ?
+			OFFSET ?
+		`, limit, offset).
+		Scan(&out).
 		Error
 	if err != nil {
 		return out, fmt.Errorf("error on getting list post entry from database. err=%w", err)

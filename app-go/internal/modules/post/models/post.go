@@ -49,7 +49,7 @@ type GetPostsArg struct {
 }
 
 type GetPostsResponse struct {
-	List []PostResponse `json:"list"`
+	List []*PostResponse `json:"list"`
 }
 
 type PostResponse struct {
