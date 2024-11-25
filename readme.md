@@ -86,7 +86,7 @@ I may have shoot myself in the foot here, I'm attempting to create a cyclic stru
 4. create comment entry to `posts` table
 5. create comment entry to `post_structures` table with `parent_post_id` pointing to the post it comments
 
-### delete comment
+### `delete comment`
 1. user send request
 2. app receive request
 3. validate comment ownership
