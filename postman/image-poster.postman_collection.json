@@ -1,0 +1,136 @@
+{
+	"info": {
+		"_postman_id": "0a77b135-8712-460f-93af-31b8e7fab2b8",
+		"name": "image-poster",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"_exporter_id": "5915625"
+	},
+	"item": [
+		{
+			"name": "post - get list of posts",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:4000/post/list?limit=10&page=1",
+					"host": [
+						"localhost"
+					],
+					"port": "4000",
+					"path": [
+						"post",
+						"list"
+					],
+					"query": [
+						{
+							"key": "limit",
+							"value": "10"
+						},
+						{
+							"key": "page",
+							"value": "1"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "post - submit",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "x-user-id",
+						"value": "some-user-id",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "file",
+							"type": "file",
+							"src": "/home/vembry/Downloads/file-1732463655738.jpg"
+						},
+						{
+							"key": "text",
+							"value": "some random text",
+							"type": "text"
+						}
+					]
+				},
+				"url": "localhost:4000/post/"
+			},
+			"response": []
+		},
+		{
+			"name": "post - post comment",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "x-user-id",
+						"value": "some-other-user",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"text\":\"this is comment {{$guid}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:4000/post/:postId/comment",
+					"host": [
+						"localhost"
+					],
+					"port": "4000",
+					"path": [
+						"post",
+						":postId",
+						"comment"
+					],
+					"variable": [
+						{
+							"key": "postId",
+							"value": "2pKBixOYHo1lzHW9cnTWDePtsxB"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "post - delete comment",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "localhost:4000/post/comment/:commentId",
+					"host": [
+						"localhost"
+					],
+					"port": "4000",
+					"path": [
+						"post",
+						"comment",
+						":commentId"
+					],
+					"variable": [
+						{
+							"key": "commentId",
+							"value": "2pK7AzIm3ZKj49L040EzZwCP3ip"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
