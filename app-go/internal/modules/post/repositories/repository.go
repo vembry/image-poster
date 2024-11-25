@@ -3,16 +3,22 @@ package repositories
 import (
 	"app-go/internal/modules/post/models"
 	"context"
+
+	"github.com/segmentio/ksuid"
 )
 
 type IPost interface {
-	// Create create post entry
+	// Create creates post entry
 	Create(ctx context.Context, entry *models.Post) error
 
 	// RollbackCreate rollbacks post entry creation
 	RollbackCreate(ctx context.Context, entry *models.Post) error
 
 	GetByMultipleIds(ctx context.Context, ids []string) ([]*models.Post, error)
+	GetById(ctx context.Context, id ksuid.KSUID) (*models.Post, error)
+
+	// Update updates existing post entry
+	Update(ctx context.Context, entry *models.Post) error
 }
 
 type IPostStructure interface {

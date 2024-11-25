@@ -13,6 +13,8 @@ import (
 	"fmt"
 	"log"
 	"time"
+
+	"github.com/segmentio/ksuid"
 )
 
 type post struct {
@@ -142,7 +144,17 @@ func (p *post) CreatePost(ctx context.Context, args models.CreatePostArg) error 
 }
 
 func (p *post) GetPost(ctx context.Context, postId string) (*models.Post, error) {
-	return nil, nil
+	id, err := ksuid.Parse(postId)
+	if err != nil {
+		return nil, internalmodels.ErrorInvalidId
+	}
+
+	post, err := p.postRepo.GetById(ctx, id)
+	if err != nil {
+		log.Printf("error on retrieving post from database. postId=%s. err=%v", postId, err)
+		return nil, errors.New("error on retrieving post from database")
+	}
+	return post, nil
 }
 
 // GetPosts return a list of posts based on provided arguments
@@ -209,5 +221,10 @@ func (p *post) DeleteComment(ctx context.Context, args models.DeleteCommentArg) 
 
 // PostComment creates a comment entry of a post
 func (p *post) Update(ctx context.Context, post *models.Post) error {
+	err := p.postRepo.Update(ctx, post)
+	if err != nil {
+		log.Printf("error on updating post to database. postId=%s. err=%v", post.Id.String(), err)
+		return errors.New("error on updating post to database")
+	}
 	return nil
 }
