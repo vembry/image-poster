@@ -59,7 +59,7 @@ note: the setup mostly rely on docker
     1. i provided postman collection requests for the rest endpoints on `./postman` directory
 
 ## entity
-I may have shoot myself in the foot here, I'm attempting to create a cyclic structure. So essentially both post and comment behave like post with **the key difference** is how we present them.  I mainly took inspiration from reddit.
+I may have shoot myself in the foot here, I'm attempting to create a cyclic structure. So essentially both post and comment behave like post with **the key difference** is how we present them.  I mainly took inspiration from reddit of it's thread, subthread, and nested-subthread. Well we can say twitter's thread also behave similarly.
 
 There are 2 table to store the data in database:
 1. `post_structures` to store `post_id` and `parent_post_id`.
